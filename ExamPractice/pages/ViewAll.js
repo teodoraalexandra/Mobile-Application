@@ -2,7 +2,7 @@ import React from 'react';
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {booksUrl} from './api/Service';
 
-const Tag = 'WS';
+const Tag = 'WS'
 
 export default class ViewAll extends React.Component {
   constructor(props) {
