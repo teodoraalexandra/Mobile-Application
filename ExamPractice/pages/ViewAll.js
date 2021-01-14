@@ -1,5 +1,6 @@
 import React from 'react';
 import {Button, StyleSheet, Text, View} from 'react-native';
+import {booksUrl} from './api/Service';
 
 const Tag = 'WS';
 
@@ -11,7 +12,7 @@ export default class ViewAll extends React.Component {
   }
 
   _connectSocket = () => {
-    this.ws = new WebSocket('ws://192.168.0.38:3000');
+    this.ws = new WebSocket('ws://' + booksUrl);
     this.ws.onerror = (e) => {
       console.log(Tag, 'Error', e.message);
     };
