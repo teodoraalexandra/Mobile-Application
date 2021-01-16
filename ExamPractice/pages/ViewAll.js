@@ -1,52 +1,83 @@
 import React from 'react';
-import {Button, FlatList, StyleSheet, Text, View} from 'react-native';
-import {booksUrl} from './api/Service';
+import {FlatList, StyleSheet, Text, View} from 'react-native';
+import Realm from 'realm';
+import {httpUrl, simpleUrl} from './api/Service';
 import NetworkUtils from './utils/NetworkUtils';
 
+let realm;
 const Tag = 'WS';
 
 export default class ViewAll extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {connected: false};
+    realm = new Realm({ path: 'ExamDatabase.realm' });
     window.navigator.userAgent = 'react-native';
+    this.fetchFromServer().then(response => console.log("Fetch from server"));
     this.state = {
-      FlatListItems: [],
-    };
+        data: []
+    }
   }
 
-  _connectSocket = () => {
-    this.ws = new WebSocket('ws://' + booksUrl);
-    this.ws.onerror = (e) => {
-      console.log(Tag, 'Error', e.message);
-    };
+  componentDidMount(): void {
+      const ws = new WebSocket('ws://' + simpleUrl);
+      ws.onerror = (e) => {
+          console.log(Tag, 'Error', e.message);
+      };
 
-    this.ws.onopen = (ws, event) => {
-      console.log(Tag, 'Socket open');
-    };
+      ws.onopen = (ws, event) => {
+          console.log(Tag, 'Socket open');
+      };
 
-    this.ws.onclose = () => {
-      console.log(Tag, 'Socket closed');
-    };
-  };
+      ws.onclose = () => {
+          console.log(Tag, 'Socket closed');
+      };
 
-  async componentDidMount(): void {
-    this.props.navigation.addListener(
-        'didFocus',
-        payload => {
-          this.onlineFetch();
-        }
-    );
+      ws.onmessage = function (event) {
+          console.log(Tag, 'Socket received message');
+          const json = JSON.parse(event.data);
+          const fromWS = {
+              id: json.id,
+              title: json.title,
+              date: json.date.toString()
+          };
+          realm.write(() => {
+              realm.create('exam_details', fromWS);
+          });
+      };
+
+      this.props.navigation.addListener(
+          'didFocus',
+          payload => {
+              this.setState({
+                  data: realm.objects('exam_details'),
+              })
+          }
+      );
   }
 
-  onlineFetch = async() => {
-    this.timeout(1000, fetch(booksUrl + "/books"))
+  fetchFromServer = async() => {
+   fetch(httpUrl + "/books", {
+       method: 'GET',
+       headers: {
+           'Accept': '*/*',
+           'Content-Type': 'application/json',
+           'Connection': 'keep-alive',
+           'Access-Control-Allow-Origin': '*',
+           'Pragma': 'no-cache',
+           'Cache-control': 'no-cache'
+       }})
         .then(response => response.json())
-        .then(data =>
-          this.setState({
-            FlatListItems: data,
-          }))
-        .catch(error => console.log(error))
+        .then(data => realm.write(() => {
+            realm.delete(realm.objects('exam_details'));
+            for (let i = 0; i < data.length; i ++) {
+                realm.create('exam_details', {
+                    id: data[i].id,
+                    title: data[i].title,
+                    date: data[i].date.toString(),
+                });
+            }
+        }))
+        .catch(error => console.log("Offline", error));
   };
 
   ListViewItemSeparator = () => {
@@ -56,21 +87,17 @@ export default class ViewAll extends React.Component {
   };
 
   render() {
-    // style={styles.container}
     return (
       <View>
-        <Text>Connect to localhost! :)</Text>
-        <Button title="Connect" onPress={this._connectSocket} />
-        <NetworkUtils />
+        <NetworkUtils navigation={this.props.navigation}/>
         <FlatList
-            data={this.state.FlatListItems}
+            data={realm.objects('exam_details')}
             ItemSeparatorComponent={this.ListViewItemSeparator}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
                 <View style={{ backgroundColor: '#EBEBEB', padding: 20, flexDirection: 'row'}}>
                   <Text style={{alignItems: 'center'}}>{item.id}. &nbsp;&nbsp;</Text>
                   <Text style={{alignItems: 'center'}}>{item.title}</Text>
-
                 </View>
             )}
         />
