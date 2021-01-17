@@ -17,7 +17,7 @@ realm = new Realm({
     {
       name: 'exam_details',
       properties: {
-        id: { type: 'int', default: 0 },
+        id: {type: 'int', default: 0},
         title: 'string',
         date: 'string',
       },
@@ -38,7 +38,7 @@ const App = createStackNavigator({
     screen: AddOne,
     navigationOptions: {
       title: 'Add page',
-      headerStyle: { backgroundColor: '#FA7F72' },
+      headerStyle: {backgroundColor: '#FA7F72'},
       headerTintColor: '#EBEBEB',
     },
   },
