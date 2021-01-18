@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import MyButton from './components/MyButton';
 import Realm from 'realm';
 import {httpUrl} from './api/Service';
+import {webSocket} from './utils/WebSocket';
 let realm;
 
 export default class ViewOrderDetails extends React.Component {

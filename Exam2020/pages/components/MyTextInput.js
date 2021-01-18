@@ -9,6 +9,7 @@ const MyTextInput = (props) => {
         flex: 1,
         color: '#389393',
         backgroundColor: '#ffffff',
+          height: 40
       }}>
       <TextInput
         placeholder={props.placeholder}

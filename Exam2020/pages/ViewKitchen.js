@@ -6,6 +6,7 @@ import NetworkUtils from './utils/NetworkUtils';
 import NetworkManager from './utils/NetworkManagerClass';
 import Details from './utils/Details';
 import MyButton from './components/MyButton';
+import {webSocket} from './utils/WebSocket';
 
 let realm;
 const Tag = 'WS';
@@ -25,32 +26,6 @@ export default class ViewKitchen extends React.Component {
     }
 
     componentDidMount(): void {
-        const ws = new WebSocket('ws://' + simpleUrl);
-        ws.onerror = (e) => {
-            console.trace(Tag, 'Error', e.message);
-        };
-
-        ws.onopen = (ws, event) => {
-            console.trace(Tag, 'Socket open');
-        };
-
-        ws.onclose = () => {
-            console.trace(Tag, 'Socket closed');
-        };
-
-        ws.onmessage = async function (event) {
-            console.trace(Tag, 'Socket received message');
-            const json = JSON.parse(event.data);
-            const fromWS = {
-                id: json.id,
-                table: json.table,
-                details: json.details,
-                status: json.status,
-                time:  json.time,
-                type: json.type
-            };
-        };
-
         this.props.navigation.addListener('didFocus', (payload) => {
             this.fetchFromServer();
         });

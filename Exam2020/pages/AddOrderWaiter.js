@@ -8,6 +8,7 @@ import { httpUrl, simpleUrl } from "./api/Service";
 import axios from 'axios';
 import AsyncStorage from '@react-native-community/async-storage'
 import NetworkManager from './utils/NetworkManagerClass';
+import {webSocket} from './utils/WebSocket';
 let realm;
 
 const InitWindowStyles = StyleSheet.create({
@@ -58,7 +59,7 @@ export default class AddOrderWaiter extends React.Component {
         realm = new Realm({ path: 'OrderDatabase.realm' });
     }
 
-    timeout(ms, promise) {
+    async timeout(ms, promise) {
         return new Promise(function(resolve, reject) {
             setTimeout(function() {
                 reject(new Error("timeout"))
@@ -88,7 +89,7 @@ export default class AddOrderWaiter extends React.Component {
             if (NetworkManager.IsInternetAvailable) {
                 this.timeout(1000, axios.post(httpUrl + "/order", newOrder))
                     .then((res) => {
-                        Alert.alert(
+                       Alert.alert(
                             'Success',
                             'Added successfully',
                             [

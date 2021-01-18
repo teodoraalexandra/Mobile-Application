@@ -6,6 +6,7 @@ import Realm from 'realm';
 import {httpUrl} from './api/Service';
 import axios from 'axios';
 import MyTextInput from './components/MyTextInput';
+import {webSocket} from './utils/WebSocket';
 let realm;
 
 const InitWindowStyles = StyleSheet.create({

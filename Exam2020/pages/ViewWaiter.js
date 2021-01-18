@@ -8,9 +8,9 @@ import NetworkManager from './utils/NetworkManagerClass';
 import MyButton from './components/MyButton';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from "axios";
+import {ProgressBar, Colors} from 'react-native-paper';
 
 let realm;
-const Tag = 'WS';
 
 export default class ViewWaiter extends React.Component {
     constructor(props) {
@@ -22,9 +22,14 @@ export default class ViewWaiter extends React.Component {
         window.navigator.userAgent = 'react-native';
         this.state = {
             data: [],
-            offlineStack: []
+            offlineStack: [],
+            loading: false,
         };
     }
+
+    sleep = (milliseconds) => {
+        return new Promise((resolve) => setTimeout(resolve, milliseconds));
+    };
 
     async componentDidUpdate(): void {
         const order = await AsyncStorage.getItem("order");
@@ -49,32 +54,6 @@ export default class ViewWaiter extends React.Component {
     }
 
     componentDidMount(): void {
-        const ws = new WebSocket('ws://' + simpleUrl);
-        ws.onerror = (e) => {
-            console.trace(Tag, 'Error', e.message);
-        };
-
-        ws.onopen = (ws, event) => {
-            console.trace(Tag, 'Socket open');
-        };
-
-        ws.onclose = () => {
-            console.trace(Tag, 'Socket closed');
-        };
-
-        ws.onmessage = async function (event) {
-            console.trace(Tag, 'Socket received message');
-            const json = JSON.parse(event.data);
-            const fromWS = {
-                id: json.id,
-                table: json.table,
-                details: json.details,
-                status: json.status,
-                time:  json.time,
-                type: json.type
-            };
-        };
-
         this.props.navigation.addListener('didFocus', (payload) => {
             this.fetchFromServer();
         });
@@ -83,6 +62,8 @@ export default class ViewWaiter extends React.Component {
     pushToServer = async () => {
         if (this.state.offlineStack.length !== 0 && NetworkManager.IsInternetAvailable) {
             console.log("Push offline stack to server: ", this.state.offlineStack);
+            this.setState({loading: true});
+            await this.sleep(5000);
             for (let i = 0; i <= this.state.offlineStack.length; i++) {
                 await axios.post(httpUrl + "/order", this.state.offlineStack[i])
                     .then(() => {
@@ -98,6 +79,7 @@ export default class ViewWaiter extends React.Component {
                     });
 
             }
+            this.setState({loading: false});
         }
     };
 
@@ -106,6 +88,8 @@ export default class ViewWaiter extends React.Component {
         console.log("Network status: ", NetworkManager.IsInternetAvailable);
 
         if (NetworkManager.IsInternetAvailable) {
+            this.setState({loading: true});
+            await this.sleep(5000);
             await fetch(httpUrl + '/orders', {
                 method: 'GET',
                 headers: {
@@ -139,6 +123,7 @@ export default class ViewWaiter extends React.Component {
                 .catch(error => {
                     console.log("View waiter fetch error:", error)
                 });
+            this.setState({loading: false});
         } else {
             this.setState({
                 data: realm.objects('order_details'),
@@ -161,6 +146,13 @@ export default class ViewWaiter extends React.Component {
                     title="Create new"
                     disabled={false}
                     customClick={() => this.props.navigation.navigate('Add')}
+                />
+                <ProgressBar
+                    progress={0.5}
+                    color={Colors.red800}
+                    indeterminate={true}
+                    style={{height: 25}}
+                    visible={this.state.loading.toString() === 'true'}
                 />
                 <FlatList
                     inverted

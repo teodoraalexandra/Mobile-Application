@@ -1,62 +1,26 @@
+/*Screen to view single assignment*/
 import React from 'react';
-import {FlatList, Text, View} from 'react-native';
+import { Text, View } from 'react-native';
+import MyButton from './components/MyButton';
 import Realm from 'realm';
-import {httpUrl, simpleUrl} from './api/Service';
-import NetworkUtils from './utils/NetworkUtils';
-
+import {httpUrl} from './api/Service';
+import {webSocket} from './utils/WebSocket';
 let realm;
-const Tag = 'WS';
 
-export default class ViewKitchen extends React.Component {
+export default class ViewClient extends React.Component {
     constructor(props) {
         super(props);
         realm = new Realm({path: 'OrderDatabase.realm'});
-        window.navigator.userAgent = 'react-native';
         this.state = {
-            data: [],
+            table: this.props.navigation.getParam("table"),
+            orderData: '',
+            notFound: false
         };
-        this.fetchFromServer().then((r) => {});
     }
 
-    componentDidMount(): void {
-        const ws = new WebSocket('ws://' + simpleUrl);
-        ws.onerror = (e) => {
-            console.trace(Tag, 'Error', e.message);
-        };
-
-        ws.onopen = (ws, event) => {
-            console.trace(Tag, 'Socket open');
-        };
-
-        ws.onclose = () => {
-            console.trace(Tag, 'Socket closed');
-        };
-
-        ws.onmessage = async function (event) {
-            console.trace(Tag, 'Socket received message');
-            const json = JSON.parse(event.data);
-            const fromWS = {
-                id: json.id,
-                table: json.table,
-                details: json.details,
-                status: json.status,
-                time:  json.time,
-                type: json.type
-            };
-            realm.write(() => {
-                realm.create('order_details', fromWS);
-            });
-        };
-
-        this.props.navigation.addListener('didFocus', (payload) => {
-            this.setState({
-                data: realm.objects('order_details'),
-            });
-        });
-    }
-
-    fetchFromServer = async () => {
-        fetch(httpUrl + '/my/T1', {
+    componentDidMount() {
+        console.log("Find order from table: ", this.state.table);
+        fetch(httpUrl + '/my/' + this.state.table, {
             method: 'GET',
             headers: {
                 Accept: '*/*',
@@ -69,53 +33,48 @@ export default class ViewKitchen extends React.Component {
         })
             .then((response) => response.json())
             .then((data) =>
-                realm.write(() => {
-                    realm.delete(realm.objects('order_details'));
-                    for (let i = 0; i < data.length; i++) {
-                        realm.create('order_details', {
-                            id: data[i].id,
-                            table: data[i].table,
-                            details: data[i].details,
-                            status: data[i].status,
-                            time: data[i].time,
-                            type: data[i].type
-                        });
-                    }
-                }),
+                this.setState({ orderData: data, notFound: false })
             )
-            .catch((error) => console.trace('Offline', error));
-    };
-
-    ListViewItemSeparator = () => {
-        return (
-            <View style={{height: 2, width: '100%', backgroundColor: '#389393'}} />
-        );
-    };
+            .catch(error => {
+                console.log("Table not found [ViewClient]: ", error);
+                this.setState({ orderData: [], notFound: true })
+            });
+    }
 
     render() {
-        return (
-            <View>
-                <NetworkUtils navigation={this.props.navigation} />
-                <FlatList
-                    data={realm.objects('order_details')}
-                    ItemSeparatorComponent={this.ListViewItemSeparator}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({item}) => (
-                        <View
-                            style={{
-                                backgroundColor: '#EBEBEB',
-                                padding: 20,
-                                flexDirection: 'row',
-                            }}>
-                            <Text style={{alignItems: 'center'}}>
-                                {item.id}. &nbsp;&nbsp;
-                            </Text>
-                            <Text style={{alignItems: 'center'}}>{item.table} &nbsp;</Text>
-                            <Text style={{alignItems: 'center'}}>{item.status}</Text>
-                        </View>
-                    )}
-                />
-            </View>
-        );
+        if (this.state.notFound) {
+            return (
+                <View>
+                    <View style={{marginLeft: 35, marginRight: 35, marginTop: 16, padding: 20, borderWidth: 5, borderColor: '#389393' }}>
+                        <Text style={{textAlign: 'center', fontSize: 20, fontWeight: 'bold'}}>Sorry :( I did not found table {this.state.table}</Text>
+                    </View>
+                </View>
+            )
+        } else {
+            return (
+                <View>
+                    <View style={{
+                        marginLeft: 35,
+                        marginRight: 35,
+                        marginTop: 16,
+                        padding: 20,
+                        borderWidth: 5,
+                        borderColor: '#389393'
+                    }}>
+                        <Text style={{
+                            textAlign: 'center',
+                            fontSize: 20,
+                            fontWeight: 'bold'
+                        }}>Id: {this.state.orderData.id}</Text>
+                        <Text style={{textAlign: 'center', fontSize: 18}}>Table: {this.state.orderData.table}</Text>
+                        <Text style={{textAlign: 'center', fontSize: 18}}>Details: {this.state.orderData.details}</Text>
+                        <Text style={{textAlign: 'center', fontSize: 18}}>Status: {this.state.orderData.status}</Text>
+                        <Text style={{textAlign: 'center', fontSize: 18}}>Time: {this.state.orderData.time}</Text>
+                        <Text style={{textAlign: 'center', fontSize: 18}}>Type: {this.state.orderData.type}</Text>
+                    </View>
+                </View>
+            );
+        }
     }
 }
+
