@@ -11,6 +11,7 @@ import ViewWaiter from './pages/ViewWaiter';
 import MainPage from './pages/MainPage';
 import AddOrderWaiter from './pages/AddOrderWaiter';
 import ViewOrderDetails from './pages/ViewOrderDetails';
+import EditOrderDetails from './pages/EditOrderDetails';
 
 import Realm from 'realm';
 let realm;
@@ -75,6 +76,14 @@ const App = createStackNavigator({
   },
   View: {
     screen: ViewOrderDetails,
+    navigationOptions: {
+      title: 'View order details',
+      headerStyle: {backgroundColor: '#FA7F72'},
+      headerTintColor: '#EBEBEB',
+    },
+  },
+  Update: {
+    screen: EditOrderDetails,
     navigationOptions: {
       title: 'View order details',
       headerStyle: {backgroundColor: '#FA7F72'},

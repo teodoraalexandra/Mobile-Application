@@ -73,9 +73,6 @@ export default class ViewWaiter extends React.Component {
                 time:  json.time,
                 type: json.type
             };
-            /*realm.write(() => {
-                realm.create('order_details', fromWS);
-            });*/
         };
 
         this.props.navigation.addListener('didFocus', (payload) => {

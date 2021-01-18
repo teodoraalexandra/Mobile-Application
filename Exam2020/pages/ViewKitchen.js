@@ -3,6 +3,9 @@ import {FlatList, Text, View} from 'react-native';
 import Realm from 'realm';
 import {httpUrl, simpleUrl} from './api/Service';
 import NetworkUtils from './utils/NetworkUtils';
+import NetworkManager from './utils/NetworkManagerClass';
+import Details from './utils/Details';
+import MyButton from './components/MyButton';
 
 let realm;
 const Tag = 'WS';
@@ -10,6 +13,9 @@ const Tag = 'WS';
 export default class ViewKitchen extends React.Component {
     constructor(props) {
         super(props);
+        NetworkManager.RegisterConnectionChangeCallback((isAvailable) => {
+            this.setState({});
+        });
         realm = new Realm({path: 'OrderDatabase.realm'});
         window.navigator.userAgent = 'react-native';
         this.state = {
@@ -43,47 +49,54 @@ export default class ViewKitchen extends React.Component {
                 time:  json.time,
                 type: json.type
             };
-            realm.write(() => {
-                realm.create('order_details', fromWS);
-            });
         };
 
         this.props.navigation.addListener('didFocus', (payload) => {
-            this.setState({
-                data: realm.objects('order_details'),
-            });
+            this.fetchFromServer();
         });
     }
 
     fetchFromServer = async () => {
-        fetch(httpUrl + '/recorded', {
-            method: 'GET',
-            headers: {
-                Accept: '*/*',
-                'Content-Type': 'application/json',
-                Connection: 'keep-alive',
-                'Access-Control-Allow-Origin': '*',
-                Pragma: 'no-cache',
-                'Cache-control': 'no-cache',
-            },
-        })
-            .then((response) => response.json())
-            .then((data) =>
-                realm.write(() => {
-                    realm.delete(realm.objects('order_details'));
-                    for (let i = 0; i < data.length; i++) {
-                        realm.create('order_details', {
-                            id: data[i].id,
-                            table: data[i].table,
-                            details: data[i].details,
-                            status: data[i].status,
-                            time: data[i].time,
-                            type: data[i].type
+        if (NetworkManager.IsInternetAvailable) {
+            await fetch(httpUrl + '/recorded', {
+                method: 'GET',
+                headers: {
+                    Accept: '*/*',
+                    'Content-Type': 'application/json',
+                    Connection: 'keep-alive',
+                    'Access-Control-Allow-Origin': '*',
+                    Pragma: 'no-cache',
+                    'Cache-control': 'no-cache',
+                },
+            })
+                .then((response) => response.json())
+                .then((data) =>
+                    realm.write(() => {
+                        realm.delete(realm.objects('order_details'));
+                        for (let i = 0; i < data.length; i++) {
+                            realm.create('order_details', {
+                                id: data[i].id,
+                                table: data[i].table,
+                                details: data[i].details,
+                                status: data[i].status,
+                                time: data[i].time,
+                                type: data[i].type
+                            });
+                        }
+                        this.setState({
+                            data: realm.objects('order_details')
                         });
-                    }
-                }),
-            )
-            .catch((error) => console.trace('Offline', error));
+                    }),
+                )
+                .catch(error => {
+                    console.log("View kitchen fetch error:", error)
+                });
+        } else {
+            this.setState({
+                data: [],
+            });
+            console.log("Offline user");
+        }
     };
 
     ListViewItemSeparator = () => {
@@ -97,14 +110,15 @@ export default class ViewKitchen extends React.Component {
             <View>
                 <NetworkUtils navigation={this.props.navigation} />
                 <FlatList
-                    data={realm.objects('order_details')}
+                    inverted
+                    data={this.state.data}
                     ItemSeparatorComponent={this.ListViewItemSeparator}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({item}) => (
                         <View
                             style={{
                                 backgroundColor: '#EBEBEB',
-                                padding: 20,
+                                padding: 10,
                                 flexDirection: 'row',
                             }}>
                             <Text style={{alignItems: 'center'}}>
@@ -112,6 +126,8 @@ export default class ViewKitchen extends React.Component {
                             </Text>
                             <Text style={{alignItems: 'center'}}>{item.table} &nbsp;</Text>
                             <Text style={{alignItems: 'center'}}>{item.status}</Text>
+                            <MyButton title="Update" disabled={false} customClick = {() =>
+                                this.props.navigation.navigate('Update', { orderId: item.id })}/>
                         </View>
                     )}
                 />
